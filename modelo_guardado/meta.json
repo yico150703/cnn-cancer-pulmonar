@@ -3,7 +3,7 @@
     "no_cancer": 0,
     "cancer": 1
   },
-  "imgSize": 64,
+  "imgSize": 128,
   "threshold": 0.5,
   "historial": {
     "accuracy": [
