@@ -13,10 +13,7 @@ const app  = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Middlewares ───────────────────────────────────────────────────────────────
-app.use(cors({
-  origin:  process.env.FRONTEND_URL || '*',
-  methods: ['GET', 'POST']
-}));
+app.use(cors());
 app.use(express.json());
 
 // ── Multer: archivos en memoria ───────────────────────────────────────────────
