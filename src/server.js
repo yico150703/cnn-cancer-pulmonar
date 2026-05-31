@@ -1,6 +1,3 @@
-// src/server.js
-// API REST — expone el modelo CNN para predicción vía HTTP
-
 require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
@@ -12,11 +9,21 @@ const { predecir, cargarModelo } = require('./predecir');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
-// ── Middlewares ───────────────────────────────────────────────────────────────
+// ── CORS completamente abierto ────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 
-// ── Multer: archivos en memoria ───────────────────────────────────────────────
+// ── Multer ────────────────────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
   limits:  { fileSize: 20 * 1024 * 1024 },
@@ -30,20 +37,15 @@ const upload = multer({
 });
 
 // ── Rutas ─────────────────────────────────────────────────────────────────────
-
-// Health check
 app.get('/', (_req, res) => {
   res.json({
-    status:    'online',
-    api:       'CNN Cáncer Pulmonar MRI',
-    version:   '1.0.0',
-    clases:    ['cancer', 'no_cancer'],
-    threshold: 0.5,
-    nota:      'sigmoid >= 0.5 → cancer'
+    status:  'online',
+    api:     'CNN Cáncer Pulmonar MRI',
+    version: '1.0.0',
+    rutas:   ['GET /', 'GET /metricas', 'POST /predecir']
   });
 });
 
-// Métricas de entrenamiento (para mostrar en el frontend)
 app.get('/metricas', (_req, res) => {
   const metaPath = path.join(__dirname, '..', 'modelo_guardado', 'meta.json');
   if (!fs.existsSync(metaPath)) {
@@ -57,32 +59,24 @@ app.get('/metricas', (_req, res) => {
   });
 });
 
-// Predicción
 app.post('/predecir', upload.single('imagen'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió ninguna imagen.' });
     }
-
-    console.log(`📷 ${req.file.originalname} (${(req.file.size/1024).toFixed(1)} KB)`);
-
+    console.log(`📷 ${req.file.originalname}`);
     const resultado = await predecir(req.file.buffer);
-
-    console.log(
-      `   → ${resultado.clase} | confianza: ${resultado.confianza}% | sigmoid: ${resultado.valorSigmoid}`
-    );
-
+    console.log(`→ ${resultado.clase} | ${resultado.confianza}%`);
     res.json({ exito: true, archivo: req.file.originalname, resultado });
-
   } catch (error) {
     console.error('❌', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ── Iniciar servidor ──────────────────────────────────────────────────────────
+// ── Iniciar ───────────────────────────────────────────────────────────────────
 app.listen(PORT, async () => {
-  console.log(`\n🚀 API corriendo en http://localhost:${PORT}`);
+  console.log(`\n🚀 API en http://localhost:${PORT}`);
   try {
     await cargarModelo();
   } catch {
